@@ -1,0 +1,12 @@
+{
+  "shell_port": 54591,
+  "iopub_port": 44729,
+  "stdin_port": 48035,
+  "control_port": 38687,
+  "hb_port": 38491,
+  "ip": "127.0.0.1",
+  "key": "f393ee7c-de850b2fa18f1a8dca8ba180",
+  "transport": "tcp",
+  "signature_scheme": "hmac-sha256",
+  "kernel_name": "python3"
+}
