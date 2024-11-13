@@ -1,4 +1,10 @@
-*.log
 __pycache__/
 *.pyc
-.gitconfig
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.log
+.vscode/
+.idea/
