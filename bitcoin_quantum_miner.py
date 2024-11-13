@@ -2,47 +2,62 @@ import subprocess
 import json
 import time
 import sys
+import logging
 
-print("Script started")
+from quantum_inspired_miner import quantum_inspired_mining
 
-try:
-    from quantum_inspired_miner import quantum_inspired_mining
-    print("quantum_inspired_miner imported successfully")
-except ImportError as e:
-    print(f"Failed to import quantum_inspired_miner: {e}")
-    sys.exit(1)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def rpc_command(method, params=[]):
     command = f"bitcoin-cli {method} {' '.join(map(str, params))}"
-    print(f"Executing command: {command}")
+    logging.debug(f"Executing command: {command}")
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
-    print(f"Command output: {result.stdout}")
-    print(f"Command error: {result.stderr}")
+    if result.stderr:
+        logging.error(f"Command error: {result.stderr}")
     try:
         return json.loads(result.stdout) if result.stdout else None
     except json.JSONDecodeError:
-        print(f"Failed to parse JSON: {result.stdout}")
+        logging.error(f"Failed to parse JSON: {result.stdout}")
         return None
 
 def main():
-    print("Entering main function")
+    logging.info("Starting Bitcoin Quantum Miner")
     while True:
         try:
-            print("Checking node status...")
             info = rpc_command('getblockchaininfo')
             if not info:
-                print("Failed to get blockchain info. Is bitcoind running?")
+                logging.warning("Failed to get blockchain info. Is bitcoind running?")
                 time.sleep(10)
                 continue
 
-            print(f"Blockchain info: {info}")
-            print("Script is running. Press Ctrl+C to stop.")
-            time.sleep(10)
+            if info['initialblockdownload']:
+                logging.info(f"Node is still syncing. Current progress: {info['verificationprogress']*100:.2f}%")
+                time.sleep(60)
+                continue
+
+            block_template = rpc_command('getblocktemplate', ['{"rules": ["segwit"]}'])
+            if not block_template:
+                logging.warning("Failed to get block template. Retrying...")
+                time.sleep(10)
+                continue
+
+            logging.info("Starting quantum-inspired mining...")
+            result = quantum_inspired_mining(8, block_template)  # Using 8 "quantum positions"
+            if result:
+                position, nonce, block_hash = result
+                logging.info(f"Potential block found by position {position}")
+                logging.info(f"Nonce: {nonce}")
+                logging.info(f"Block hash: {block_hash}")
+
+                submit_result = rpc_command('submitblock', [block_hash])
+                logging.info(f"Block submission result: {submit_result}")
+            else:
+                logging.info("No valid block found in this iteration.")
 
         except Exception as e:
-            print(f"An error occurred: {e}")
-            time.sleep(10)
+            logging.error(f"An error occurred: {e}")
+
+        time.sleep(10)  # Wait 10 seconds before next attempt
 
 if __name__ == "__main__":
     main()
-
